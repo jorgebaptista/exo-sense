@@ -9,6 +9,9 @@ FastAPI backend for exoplanet detection and analysis.
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
+# Start development server (like npm run dev for Next.js)
+uvicorn main:app --reload --port 8000
+
 # Run type checking
 mypy . --strict
 

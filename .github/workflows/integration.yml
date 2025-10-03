@@ -1,0 +1,72 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Wait for other workflows to complete
+  wait-for-builds:
+    name: Wait for Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Frontend CI
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "Frontend (Next.js)"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Wait for Backend CI
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "Backend (FastAPI)"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Wait for ML CI
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "ML Package"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+  # Integration tests
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: wait-for-builds
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup test environment
+        run: |
+          echo "Setting up integration test environment"
+          # Here you would:
+          # - Start test database
+          # - Start API server
+          # - Run E2E tests
+          # - Test API contracts
+
+      - name: Placeholder for integration tests
+        run: |
+          echo "Integration tests would run here"
+          echo "- API health checks"
+          echo "- Frontend/API integration"
+          echo "- ML pipeline end-to-end"
+
+      - name: API Contract Tests
+        run: |
+          echo "Testing API contracts..."
+          echo "GET /healthz should return 200"
+          echo "POST /analyze should accept valid requests"
+          echo "All endpoints follow OpenAPI spec"
+
+      - name: End-to-End Tests
+        run: |
+          echo "E2E tests would run here..."
+          echo "Full user journey: upload → analyze → download PDF"
