@@ -48,10 +48,14 @@ jobs:
       with:
         images: exosense-api
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
+          type=ref,event=branch,suffix={{sha}}
+          type=ref,event=pr,suffix={{sha}}
+          type=sha,prefix=sha-
           type=raw,value=latest,enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=ExoSense API
+          org.opencontainers.image.description=FastAPI backend for exoplanet detection
+          org.opencontainers.image.vendor=ExoSense
         
     - name: Build Docker image
       id: build
@@ -68,7 +72,12 @@ jobs:
     - name: Test container health
       run: |
         echo "🔍 Testing Docker container..."
-        docker run -d --name test-api -p 8080:8080 -e PORT=8080 exosense-api:${{ github.ref_name }}-${{ github.sha }}
+        
+        # Extract the first tag for testing
+        IMAGE_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+        echo "Testing with image: $IMAGE_TAG"
+        
+        docker run -d --name test-api -p 8080:8080 -e PORT=8080 "$IMAGE_TAG"
         
         # Wait for container to be ready
         timeout 30 bash -c 'until curl -f http://localhost:8080/healthz; do sleep 2; done'
