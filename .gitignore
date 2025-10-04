@@ -116,9 +116,13 @@ Thumbs.db
 api/storage/uploads/*
 api/storage/plots/*
 api/storage/reports/*
+api/storage/sonify/*
+api/storage/sonify/audio/*
 !api/storage/uploads/.gitkeep
 !api/storage/plots/.gitkeep
 !api/storage/reports/.gitkeep
+!api/storage/sonify/.gitkeep
+!api/storage/sonify/audio/.gitkeep
 
 # ML models and data
 ml/models/*.pkl

@@ -10,10 +10,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import (
+from reportlab.lib import colors  # type: ignore[import-untyped]
+from reportlab.lib.pagesizes import letter  # type: ignore[import-untyped]
+from reportlab.lib.styles import getSampleStyleSheet  # type: ignore[import-untyped]
+from reportlab.platypus import (  # type: ignore[import-untyped]
     Image,
     Paragraph,
     SimpleDocTemplate,
