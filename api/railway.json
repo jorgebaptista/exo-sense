@@ -1,0 +1,16 @@
+{
+  "name": "ExoSense API",
+  "description": "AI-powered exoplanet detection using NASA light curves",
+  "env": {
+    "ENVIRONMENT": {
+      "description": "Deployment environment",
+      "default": "production"
+    }
+  },
+  "build": {
+    "buildCommand": "pip install -r requirements.txt"
+  },
+  "deploy": {
+    "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT"
+  }
+}

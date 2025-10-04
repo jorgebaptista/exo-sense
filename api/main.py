@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import analyze, health
+from routers import analyze, health, report
 
 app = FastAPI(
     title="ExoSense API",
@@ -23,6 +23,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(analyze.router)
+app.include_router(report.router)
 
 
 @app.get("/healthz")
