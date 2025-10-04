@@ -1,0 +1,150 @@
+name: CI Master Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/api
+
+jobs:
+  # 🚀 Call individual workflows
+  frontend-ci:
+    name: '🎨 Frontend Pipeline'
+    uses: ./.github/workflows/frontend.yml
+    
+  backend-ci:
+    name: '🐍 Backend Pipeline'
+    uses: ./.github/workflows/backend.yml
+    
+  ml-ci:
+    name: '🤖 ML Pipeline'
+    uses: ./.github/workflows/ml.yml
+    
+  # 🐳 Docker build and test (only after backend passes)
+  docker-build:
+    name: '🐳 Docker Build & Test'
+    runs-on: ubuntu-latest
+    needs: [backend-ci]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: exosense-api
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+        
+    - name: Build Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: ./api
+        file: ./api/Dockerfile
+        load: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Test container health
+      run: |
+        echo "🔍 Testing Docker container..."
+        docker run -d --name test-api -p 8080:8080 -e PORT=8080 exosense-api:${{ github.ref_name }}-${{ github.sha }}
+        
+        # Wait for container to be ready
+        timeout 30 bash -c 'until curl -f http://localhost:8080/healthz; do sleep 2; done'
+        
+        echo "✅ Container health check passed!"
+        docker stop test-api
+        docker rm test-api
+  
+  # 🔗 Integration tests (after all components pass)
+  integration-tests:
+    name: '🔗 Integration Tests'
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci, docker-build]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      working-directory: ./api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Start API server
+      working-directory: ./api
+      run: |
+        uvicorn main:app --host 0.0.0.0 --port 8000 &
+        sleep 10
+        
+    - name: Run integration tests
+      run: |
+        echo "🧪 Testing API endpoints..."
+        curl -f http://localhost:8000/healthz || (echo "❌ Health check failed" && exit 1)
+        curl -f http://localhost:8000/ || (echo "❌ Root endpoint failed" && exit 1)
+        echo "✅ Integration tests passed!"
+
+  # 📊 Quality gate summary
+  quality-gate:
+    name: '📊 Quality Gate'
+    runs-on: ubuntu-latest
+    needs: [frontend-ci, backend-ci, ml-ci, docker-build, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Check results
+      run: |
+        echo "## 🎯 Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check each job status
+        frontend_status="${{ needs.frontend-ci.result }}"
+        backend_status="${{ needs.backend-ci.result }}"
+        ml_status="${{ needs.ml-ci.result }}"
+        docker_status="${{ needs.docker-build.result }}"
+        integration_status="${{ needs.integration-tests.result }}"
+        
+        echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🎨 Frontend | $([ "$frontend_status" = "success" ] && echo "✅ Passed" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🐍 Backend | $([ "$backend_status" = "success" ] && echo "✅ Passed" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🤖 ML | $([ "$ml_status" = "success" ] && echo "✅ Passed" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🐳 Docker | $([ "$docker_status" = "success" ] && echo "✅ Passed" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔗 Integration | $([ "$integration_status" = "success" ] && echo "✅ Passed" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall status
+        if [ "$frontend_status" = "success" ] && [ "$backend_status" = "success" ] && [ "$ml_status" = "success" ] && [ "$docker_status" = "success" ] && [ "$integration_status" = "success" ]; then
+          echo "### 🎉 **ALL CHECKS PASSED!** Ready for deployment 🚀" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        else
+          echo "### 🚨 **QUALITY GATE FAILED** - Fix issues before merging ❌" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
