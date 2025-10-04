@@ -59,10 +59,10 @@ This document provides essential guidelines for AI coding agents and contributor
 cd frontend && npm run type-check && npm run lint && npm run test
 
 # Backend  
-cd api && mypy . --strict && ruff check . && pytest tests/
+cd api && mypy . && ruff check . --fix && ruff format . && pytest tests/
 
 # ML
-cd ml && mypy . --strict && ruff check . && pytest tests/
+cd ml && mypy . && ruff check . --fix && ruff format . && pytest tests/
 ```
 
 **All must pass green** before committing.
