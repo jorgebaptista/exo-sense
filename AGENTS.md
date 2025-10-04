@@ -2,6 +2,9 @@
 
 > **Context**: See [README.md](./README.md) for project overview and [docs/architecture.md](./docs/architecture.md) for detailed structure.
 
+> **🚨 CRITICAL**: Every session MUST end with 100% clean checks (MyPy, Ruff, ESLint, tests) across ALL folders. No exceptions.
+> **Always run MyPy, Ruff, ESLint and all tests in `frontend`, `api`, and `ml` before ending your session.**
+
 This document provides essential guidelines for AI coding agents and contributors working on ExoSense.
 
 ## Project Overview
