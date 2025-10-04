@@ -6,6 +6,12 @@ declare module 'lucide-react' {
   export const AlertCircle: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   export const CheckCircle2: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   export const Loader2: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Play: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Square: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Volume2: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Settings2: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Headphones: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Waves: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   const _default: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>>;
   export default _default;
 }

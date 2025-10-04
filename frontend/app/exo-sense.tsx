@@ -1,13 +1,143 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2, Waves } from 'lucide-react';
+import SonificationPanel, { SonificationData } from './components/SonificationPanel';
 
 type Result = {
   exoplanetDetected: boolean;
   confidence: string;
   transitDepth: string;
   orbitalPeriod: string;
+  oddEvenDeltaPct: string;
+  secondarySigma: string;
+  sonificationData: SonificationData;
+};
+
+const createSyntheticSonification = (): SonificationData => {
+  const totalPoints = 240;
+  const phase: number[] = [];
+  const flux: number[] = [];
+  const inTransit: boolean[] = [];
+  const oddEven: Array<'odd' | 'even' | null> = [];
+  const secondary: boolean[] = Array.from({ length: totalPoints }, () => false);
+
+  const transitCenters = [0.18, 0.52, 0.86];
+  const transitWidths = [0.05, 0.05, 0.05];
+  const transitDepths = [0.009, 0.011, 0.0095];
+
+  for (let i = 0; i < totalPoints; i += 1) {
+    const phaseValue = i / totalPoints;
+    phase.push(phaseValue);
+
+    let value = 1 + 0.003 * Math.sin(phaseValue * Math.PI * 4);
+    value += (Math.random() - 0.5) * 0.0008;
+
+    let tag: 'odd' | 'even' | null = null;
+    let isTransit = false;
+
+    transitCenters.forEach((center, index) => {
+      const width = transitWidths[index];
+      const depth = transitDepths[index];
+      const distance = Math.abs(phaseValue - center);
+      if (distance < width) {
+        const shape = Math.cos((distance / width) * (Math.PI / 2));
+        value -= depth * shape * shape;
+        isTransit = true;
+        tag = index % 2 === 0 ? 'odd' : 'even';
+      }
+    });
+
+    const secondaryDistance = Math.abs(phaseValue - 0.5);
+    if (secondaryDistance < 0.02) {
+      const shape = Math.cos((secondaryDistance / 0.02) * (Math.PI / 2));
+      value -= 0.0025 * shape * shape;
+      secondary[i] = true;
+    }
+
+    flux.push(value);
+    inTransit.push(isTransit);
+    oddEven.push(tag);
+  }
+
+  return {
+    phase,
+    flux,
+    inTransit,
+    oddEven,
+    secondary,
+  };
+};
+
+const computeOddEvenDeltaPct = (data: SonificationData): string => {
+  if (!data.oddEven?.length) {
+    return '0.0';
+  }
+
+  const oddDepths: number[] = [];
+  const evenDepths: number[] = [];
+
+  data.flux.forEach((value, index) => {
+    if (!data.inTransit[index]) {
+      return;
+    }
+
+    const depth = Math.max(0, 1 - value);
+    const tag = data.oddEven?.[index] ?? null;
+    if (tag === 'odd') {
+      oddDepths.push(depth);
+    } else if (tag === 'even') {
+      evenDepths.push(depth);
+    }
+  });
+
+  if (!oddDepths.length || !evenDepths.length) {
+    return '0.0';
+  }
+
+  const oddAverage = oddDepths.reduce((sum, depth) => sum + depth, 0) / oddDepths.length;
+  const evenAverage = evenDepths.reduce((sum, depth) => sum + depth, 0) / evenDepths.length;
+  const denominator = (oddAverage + evenAverage) / 2 || 1;
+  const delta = Math.abs(oddAverage - evenAverage) / denominator * 100;
+  return delta.toFixed(1);
+};
+
+const estimateSecondarySigma = (data: SonificationData): string => {
+  if (!data.secondary?.some(Boolean)) {
+    return '0.0';
+  }
+
+  const baselineSamples: number[] = [];
+  data.flux.forEach((value, index) => {
+    if (!data.inTransit[index] && !(data.secondary?.[index] ?? false)) {
+      baselineSamples.push(value);
+    }
+  });
+
+  if (!baselineSamples.length) {
+    return '0.0';
+  }
+
+  const baselineMean = baselineSamples.reduce((sum, value) => sum + value, 0) / baselineSamples.length;
+  const variance = baselineSamples.reduce((sum, value) => sum + (value - baselineMean) ** 2, 0) / baselineSamples.length;
+  const baselineStd = Math.max(Math.sqrt(variance), 1e-4);
+
+  let secondaryDepthSum = 0;
+  let secondaryCount = 0;
+  data.secondary?.forEach((flag, index) => {
+    if (flag) {
+      secondaryDepthSum += baselineMean - data.flux[index];
+      secondaryCount += 1;
+    }
+  });
+
+  if (!secondaryCount) {
+    return '0.0';
+  }
+
+  const averageSecondaryDepth = secondaryDepthSum / secondaryCount;
+  const sigma = averageSecondaryDepth / baselineStd;
+  return sigma.toFixed(1);
 };
 
 export default function ExoplanetDetector() {
@@ -61,13 +191,20 @@ export default function ExoplanetDetector() {
     try {
       // Simulate API call - replace with actual FastAPI endpoint
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
+      const sonificationData = createSyntheticSonification();
+      const oddEvenDelta = computeOddEvenDeltaPct(sonificationData);
+      const secondarySigma = estimateSecondarySigma(sonificationData);
+
       // Mock results - replace with actual API response
       setResults({
         exoplanetDetected: Math.random() > 0.5,
         confidence: (Math.random() * 30 + 70).toFixed(2),
         transitDepth: (Math.random() * 0.01).toFixed(4),
-        orbitalPeriod: (Math.random() * 20 + 5).toFixed(2)
+        orbitalPeriod: (Math.random() * 20 + 5).toFixed(2),
+        oddEvenDeltaPct: oddEvenDelta,
+        secondarySigma,
+        sonificationData
       });
     } catch {
       setError('Failed to analyze data. Please try again.');
@@ -223,6 +360,22 @@ export default function ExoplanetDetector() {
                 <p className="text-slate-400 text-sm mb-1">Data Source</p>
                 <p className="text-xl font-semibold text-white">{file?.name}</p>
               </div>
+
+              <div className="bg-black/30 rounded-lg p-5 border border-white/5">
+                <p className="text-slate-400 text-sm mb-1 flex items-center gap-2">
+                  <Waves className="w-4 h-4 text-purple-300" /> Odd/Even Depth Δ
+                </p>
+                <p className="text-3xl font-bold text-white">{results.oddEvenDeltaPct}%</p>
+              </div>
+
+              <div className="bg-black/30 rounded-lg p-5 border border-white/5">
+                <p className="text-slate-400 text-sm mb-1">Secondary Eclipse σ</p>
+                <p className="text-3xl font-bold text-white">{results.secondarySigma}</p>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <SonificationPanel data={results.sonificationData} />
             </div>
           </div>
         )}
