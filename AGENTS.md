@@ -1,6 +1,6 @@
 # AGENTS.md — Development Guidelines
 
-> **Context**: See [README.md](./README.md) for project overview.
+> **Context**: See [README.md](./README.md) for project overview and [docs/architecture.md](./docs/architecture.md) for detailed structure.
 
 This document provides essential guidelines for AI coding agents and contributors working on ExoSense.
 
@@ -19,6 +19,7 @@ This document provides essential guidelines for AI coding agents and contributor
 3. **Type Safety**: TypeScript strict mode (frontend), mypy strict (backend)
 4. **Tests Required**: Unit tests for business logic, integration tests for API
 5. **All Tests Pass**: Run type-check, lint, test before finishing any session
+6. **NO GIT OPERATIONS**: Never commit, add, or push with git - user handles all git operations
 
 ## Architecture
 
@@ -32,9 +33,10 @@ This document provides essential guidelines for AI coding agents and contributor
 - **Tech**: FastAPI, Pydantic v2
 - **Structure**: `main.py` (routes), `models/` (request/response), `services/` (business logic)
 
-### ML Pipeline (`ml/`)
+### ML Pipeline (`ml/` + `notebooks/`)
 
 - **Tech**: Python 3.11+, NumPy, Lightkurve, Astropy
+- **Development**: Google Colab (clone repo → develop in `notebooks/` → extract to `ml/`)
 - **Key Modules**: `ingest.py`, `detect.py` (BLS), `checks.py` (odd/even, secondary)
 
 ## Session Workflow
