@@ -67,7 +67,7 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["ml"]
+source = ["src"]
 omit = [
     "tests/*",
     "venv/*",
@@ -75,6 +75,7 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 35
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
