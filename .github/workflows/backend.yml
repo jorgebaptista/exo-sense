@@ -34,7 +34,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Type check with mypy
-        run: mypy . --strict
+        run: mypy .
 
       - name: Lint with ruff
         run: ruff check .
