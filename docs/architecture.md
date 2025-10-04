@@ -38,8 +38,8 @@ exo-sense/
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind, Plotly
 - **Backend**: FastAPI, Pydantic v2, Uvicorn  
-- **ML**: NumPy, Astropy, Lightkurve, Wōtan, BLS
-- **Development**: Google Colab (clone repo → develop → commit back)
+- **ML**: NumPy, Astropy, Lightkurve, Matplotlib
+- **Deployment**: Railway (backend), Vercel (frontend)
 - **Quality**: MyPy, Ruff, Pytest, Jest
 
 ## Data Flow
@@ -47,6 +47,22 @@ exo-sense/
 ```text
 TIC/KIC Input → API → ML Pipeline → Plots + Metrics → Frontend → PDF Export
 ```
+
+## Deployment
+
+### Railway (Backend API)
+
+- Automatic deployment from `main` branch
+- Environment: `api/` folder
+- Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Python 3.11+ with scientific dependencies
+
+### Vercel (Frontend)
+
+- Automatic deployment from `main` branch  
+- Environment: `frontend/` folder
+- Build: `npm run build`
+- Next.js optimized production build
 
 ## Google Colab Workflow
 

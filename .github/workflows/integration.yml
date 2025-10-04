@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # Integration tests
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -16,30 +15,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup test environment
-        run: |
-          echo "Setting up integration test environment"
-          # Here you would:
-          # - Start test database
-          # - Start API server
-          # - Run E2E tests
-          # - Test API contracts
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Placeholder for integration tests
+      - name: Install API dependencies
+        working-directory: ./api
         run: |
-          echo "Integration tests would run here"
-          echo "- API health checks"
-          echo "- Frontend/API integration"
-          echo "- ML pipeline end-to-end"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: API Contract Tests
+      - name: Start API server
+        working-directory: ./api
         run: |
-          echo "Testing API contracts..."
-          echo "GET /healthz should return 200"
-          echo "POST /analyze should accept valid requests"
-          echo "All endpoints follow OpenAPI spec"
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
 
-      - name: End-to-End Tests
+      - name: Test API health
         run: |
-          echo "E2E tests would run here..."
-          echo "Full user journey: upload → analyze → download PDF"
+          curl -f http://localhost:8000/healthz || exit 1
+          echo "API health check passed"
+
+      - name: Test API endpoints
+        run: |
+          curl -f http://localhost:8000/ || exit 1
+          echo "API root endpoint passed"
