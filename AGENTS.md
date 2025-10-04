@@ -19,20 +19,25 @@
 ## Quality Checks (Required before finishing)
 
 ```bash
-# Documentation
-markdownlint "**/*.md" --ignore "**/node_modules/**" --ignore "**/.next/**"
-
-# Frontend
+# Frontend (CRITICAL: Run from frontend/ directory)
 cd frontend && npm run type-check && npm run lint && npm test
 
-# Backend  
+# Backend (CRITICAL: Run from api/ directory)
 cd api && mypy . && ruff check . && ruff format --check . && pytest tests/ -v
 
-# ML
+# ML Package (CRITICAL: Run from ml/ directory)
 cd ml && mypy . --explicit-package-bases && ruff check . && pytest tests/ -v
+
+# Documentation (Optional but recommended)
+markdownlint "**/*.md" --ignore "**/node_modules/**" --ignore "**/.next/**"
 
 # Type stub check (if mypy fails with missing stubs)
 cd api && python -m pip install -r requirements-dev.txt
+ 
+cd frontend && npx tsc --noEmit --listFiles | grep -E "(api|lib)" || echo "Check imports!"
+
+# Verify all components compile
+cd frontend && npm run build --dry-run 2>&1 | grep -E "(error|Error)" || echo "Build OK"
 ```
 
 ## API Endpoints

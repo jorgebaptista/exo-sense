@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { analyzeFile } from '../lib/api';
+import { analyzeFile } from '@/lib/api';
 
 type Result = {
   exoplanetDetected: boolean;
