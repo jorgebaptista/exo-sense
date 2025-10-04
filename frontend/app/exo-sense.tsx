@@ -16,16 +16,28 @@ export default function ExoplanetDetector() {
   const [results, setResults] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Generate random stars
-  const stars = React.useMemo(() => {
-    return Array.from({ length: 150 }, (_, i) => ({
+  // Generate random stars only on the client after mount to avoid SSR/CSR hydration mismatch
+  type Star = {
+    id: number;
+    left: number;
+    top: number;
+    size: number;
+    opacity: number;
+    animationDelay: number;
+  };
+
+  const [stars, setStars] = React.useState<Star[]>([]);
+
+  React.useEffect(() => {
+    const generated: Star[] = Array.from({ length: 150 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
       top: Math.random() * 100,
       size: Math.random() * 2 + 1,
       opacity: Math.random() * 0.5 + 0.3,
-      animationDelay: Math.random() * 3
+      animationDelay: Math.random() * 3,
     }));
+    setStars(generated);
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
