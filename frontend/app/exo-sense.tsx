@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { SonificationPanel, type LightCurvePoint } from './components/SonificationPanel';
 
 type Result = {
   exoplanetDetected: boolean;
@@ -27,6 +28,28 @@ export default function ExoplanetDetector() {
   };
 
   const [stars, setStars] = React.useState<Star[]>([]);
+
+  const demoLightCurve = React.useMemo<LightCurvePoint[]>(() => {
+    const totalPoints = 240;
+    const transitCenter = 0.5;
+    const transitWidth = 0.06;
+    const sigma = transitWidth / 2.355; // convert approximate FWHM to sigma
+
+    return Array.from({ length: totalPoints }, (_, index) => {
+      const phase = index / totalPoints;
+      const baseFlux = 1 - 0.0004 * Math.cos(2 * Math.PI * phase);
+      const depth = Math.exp(-0.5 * Math.pow((phase - transitCenter) / sigma, 2)) * 0.015;
+      const secondaryDepth = Math.exp(-0.5 * Math.pow((phase - 0.02) / (sigma * 0.6), 2)) * 0.004;
+      const flux = baseFlux - depth - secondaryDepth;
+      const inTransit = depth > 0.002;
+
+      return {
+        time: phase,
+        flux,
+        inTransit,
+      } satisfies LightCurvePoint;
+    });
+  }, []);
 
   React.useEffect(() => {
     const generated: Star[] = Array.from({ length: 150 }, (_, i) => ({
@@ -224,6 +247,8 @@ export default function ExoplanetDetector() {
                 <p className="text-xl font-semibold text-white">{file?.name}</p>
               </div>
             </div>
+
+            <SonificationPanel points={demoLightCurve} />
           </div>
         )}
 
