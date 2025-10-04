@@ -2,6 +2,7 @@
 
 import base64
 import io
+import json
 import logging
 import time
 import uuid
@@ -11,10 +12,10 @@ from typing import Annotated, Any
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from models.response import AnalysisResponse, AnalysisResult
+from models.response import AnalysisResponse, AnalysisResult, SonificationSeries
 
 # Configure matplotlib for non-interactive backend
 matplotlib.use("Agg")
@@ -27,9 +28,10 @@ router = APIRouter(prefix="/analyze", tags=["analysis"])
 UPLOAD_DIR = Path("storage/uploads")
 PLOTS_DIR = Path("storage/plots")
 REPORTS_DIR = Path("storage/reports")
+SONIFICATION_DIR = Path("storage/sonify")
 
 # Ensure directories exist
-for directory in [UPLOAD_DIR, PLOTS_DIR, REPORTS_DIR]:
+for directory in [UPLOAD_DIR, PLOTS_DIR, REPORTS_DIR, SONIFICATION_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -59,9 +61,12 @@ class ExoplanetPredictor:
             # Simple transit detection using moving window
             prediction = self._detect_transits(time_array, flux_normalized)
 
-            # Add data for plotting
+            # Add data for plotting and sonification
             prediction["time"] = time_array.tolist()
             prediction["flux"] = flux_normalized.tolist()
+            prediction["sonification"] = self._build_sonification_payload(
+                time_array, flux_normalized, prediction
+            )
 
             return prediction
 
@@ -76,6 +81,7 @@ class ExoplanetPredictor:
                 "reasons": [f"Analysis failed: {str(e)}"],
                 "time": [],
                 "flux": [],
+                "sonification": None,
             }
 
     def _detect_transits(self, time: np.ndarray, flux: np.ndarray) -> dict[str, Any]:
@@ -146,6 +152,115 @@ class ExoplanetPredictor:
                 "label": "error",
                 "reasons": [f"Transit detection failed: {str(e)}"],
             }
+
+    def _build_sonification_payload(
+        self,
+        time: np.ndarray,
+        flux: np.ndarray,
+        prediction: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Prepare time series payload for sonification clients."""
+
+        if len(time) == 0:
+            return None
+
+        flux_std = float(np.std(flux))
+        if flux_std <= 0:
+            flux_std = 1e-6
+
+        dip_threshold = -3 * flux_std
+        in_transit = flux < dip_threshold
+
+        events, odd_even_labels = self._extract_transit_events(
+            time, flux, in_transit, flux_std
+        )
+
+        period = float(prediction.get("orbital_period", 0) or 0)
+        if period > 0:
+            phases = ((time - time[0]) / period) % 1
+        else:
+            phases = np.linspace(0, 1, len(time), endpoint=False)
+
+        sort_idx = np.argsort(phases)
+        phase_folded_phase = phases[sort_idx]
+        phase_folded_flux = flux[sort_idx]
+
+        sample_interval = float(np.median(np.diff(time))) if len(time) > 1 else None
+
+        secondary_mask = np.zeros_like(in_transit)
+        secondary_sigma: float | None = None
+        if period > 0 and flux_std > 0:
+            phase_offset = np.mod(phases - 0.5, 1)
+            secondary_window = np.abs(phase_offset) <= 0.05
+            secondary_mask = np.logical_and(secondary_window, flux < -1.0 * flux_std)
+            if np.any(secondary_mask):
+                depth = float(np.mean(np.abs(flux[secondary_mask])))
+                if flux_std > 0:
+                    secondary_sigma = depth / flux_std
+
+        return {
+            "time": time.tolist(),
+            "flux": flux.tolist(),
+            "phase": phases.tolist(),
+            "phase_folded_phase": phase_folded_phase.tolist(),
+            "phase_folded_flux": phase_folded_flux.tolist(),
+            "in_transit": in_transit.tolist(),
+            "odd_even": odd_even_labels,
+            "secondary_mask": secondary_mask.tolist(),
+            "events": events,
+            "sample_interval": sample_interval,
+            "secondary_sigma": secondary_sigma,
+        }
+
+    def _extract_transit_events(
+        self,
+        time: np.ndarray,
+        flux: np.ndarray,
+        mask: np.ndarray,
+        flux_std: float,
+    ) -> tuple[list[dict[str, Any]], list[str | None]]:
+        """Derive contiguous transit events and odd/even labels."""
+
+        events: list[dict[str, Any]] = []
+        odd_even: list[str | None] = [None] * len(mask)
+
+        if not np.any(mask):
+            return events, odd_even
+
+        event_index = 0
+        i = 0
+        while i < len(mask):
+            if bool(mask[i]):
+                start = i
+                while i < len(mask) and bool(mask[i]):
+                    i += 1
+                end = i - 1
+
+                segment_flux = flux[start : end + 1]
+                depth = float(abs(np.min(segment_flux))) if segment_flux.size else 0.0
+                snr = float(depth / flux_std) if flux_std > 1e-8 else 0.0
+
+                events.append(
+                    {
+                        "index": event_index,
+                        "start_index": int(start),
+                        "end_index": int(end),
+                        "start_time": float(time[start]),
+                        "end_time": float(time[end]),
+                        "depth": depth,
+                        "snr": snr,
+                    }
+                )
+
+                label = "odd" if event_index % 2 == 0 else "even"
+                for j in range(start, end + 1):
+                    odd_even[j] = label
+
+                event_index += 1
+            else:
+                i += 1
+
+        return events, odd_even
 
 
 # Initialize predictor
@@ -393,6 +508,18 @@ async def analyze_light_curve(file: Annotated[UploadFile, File()]) -> AnalysisRe
             reasons=prediction["reasons"],
         )
 
+        sonification_data = prediction.get("sonification")
+        sonification_series = (
+            SonificationSeries.model_validate(sonification_data)
+            if sonification_data
+            else None
+        )
+
+        if sonification_data:
+            sonify_path = SONIFICATION_DIR / f"{analysis_id}.json"
+            with open(sonify_path, "w", encoding="utf-8") as sonify_file:
+                json.dump(sonification_data, sonify_file)
+
         # Generate plots
         plots = generate_plots(prediction, analysis_id)
 
@@ -414,6 +541,7 @@ async def analyze_light_curve(file: Annotated[UploadFile, File()]) -> AnalysisRe
             plots=plots,
             metrics=metrics,
             processing_time=processing_time,
+            sonification=sonification_series,
         )
 
     except HTTPException:
