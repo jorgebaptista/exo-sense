@@ -1,6 +1,7 @@
 """API response models."""
+from typing import Any
+
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 
 
 class HealthResponse(BaseModel):
@@ -13,19 +14,19 @@ class AnalysisResult(BaseModel):
     """Exoplanet analysis result."""
     exoplanet_detected: bool
     confidence: float
-    transit_depth: Optional[float] = None
-    orbital_period: Optional[float] = None
+    transit_depth: float | None = None
+    orbital_period: float | None = None
     label: str  # "planet", "binary", "variable", "systematics"
-    reasons: List[str]  # Reason codes for classification
-    
+    reasons: list[str]  # Reason codes for classification
+
 
 class AnalysisResponse(BaseModel):
     """Response model for analysis endpoint."""
     analysis_id: str
     filename: str
     result: AnalysisResult
-    plots: Dict[str, str]  # plot_name -> base64_image
-    metrics: Dict[str, Any]
+    plots: dict[str, str]  # plot_name -> base64_image
+    metrics: dict[str, Any]
     processing_time: float
 
 

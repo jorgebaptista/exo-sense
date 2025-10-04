@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import health, analyze
+from routers import analyze, health
 
 app = FastAPI(
     title="ExoSense API",

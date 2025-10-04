@@ -1,13 +1,13 @@
 """API request models."""
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class AnalyzeRequest(BaseModel):
     """Request model for exoplanet analysis."""
-    tic_id: Optional[str] = None
-    file_data: Optional[str] = None  # Base64 encoded file content
-    filename: Optional[str] = None
+    tic_id: str | None = None
+    file_data: str | None = None  # Base64 encoded file content
+    filename: str | None = None
 
 
 class ReportRequest(BaseModel):

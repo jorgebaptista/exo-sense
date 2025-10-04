@@ -11,19 +11,22 @@ jest.mock('next/image', () => ({
 }))
 
 describe('Home Page', () => {
-  it('renders the main page content', () => {
+  it('renders the ExoSense application', () => {
     render(<Home />)
     
-    // Check if the page contains expected elements
-    expect(screen.getByText('Get started by editing')).toBeInTheDocument()
-    expect(screen.getByText('Deploy now')).toBeInTheDocument()
-    expect(screen.getByText('Read our docs')).toBeInTheDocument()
+    // Check if the page contains ExoSense content
+    expect(screen.getByText('ExoSense')).toBeInTheDocument()
+    expect(screen.getByText('Hunt for Exoplanets with AI')).toBeInTheDocument()
+    expect(screen.getByText('Upload light curve data to detect potential exoplanets using machine learning')).toBeInTheDocument()
   })
 
-  it('has the correct Next.js logo', () => {
+  it('has the upload section', () => {
     render(<Home />)
     
-    const logo = screen.getByAltText('Next.js logo')
-    expect(logo).toBeInTheDocument()
+    const uploadText = screen.getByText('Drop your data file here')
+    expect(uploadText).toBeInTheDocument()
+    
+    const analyzeButton = screen.getByText('Analyze for Exoplanets')
+    expect(analyzeButton).toBeInTheDocument()
   })
 })
