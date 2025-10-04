@@ -2,12 +2,48 @@
 
 import React, { useState } from 'react';
 import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import SonificationPanel from './components/sonification-panel';
+import type { SonificationData } from '../src/types/sonification';
 
 type Result = {
   exoplanetDetected: boolean;
   confidence: string;
   transitDepth: string;
   orbitalPeriod: string;
+  sonification: SonificationData;
+};
+
+const buildMockSonification = (): SonificationData => {
+  const transitCenters = [0.15, 0.52, 0.89];
+  const sampleCount = 320;
+  const phase = Array.from({ length: sampleCount }, (_, index) => index / sampleCount);
+  const flux: number[] = [];
+  const inTransitMask: boolean[] = [];
+  const oddEvenMask: ('odd' | 'even')[] = [];
+
+  phase.forEach((value) => {
+    const baseFlux = 1 + 0.0008 * Math.sin(value * Math.PI * 6);
+    let transitDip = 0;
+    let isTransit = false;
+    let oddEven: 'odd' | 'even' = 'odd';
+
+    transitCenters.forEach((center, index) => {
+      const width = 0.03;
+      const distance = Math.abs(value - center);
+      if (distance < width) {
+        const gaussian = Math.exp(-((distance ** 2) / (width ** 2) / 0.1));
+        transitDip = Math.max(transitDip, gaussian * 0.01);
+        isTransit = true;
+        oddEven = index % 2 === 0 ? 'odd' : 'even';
+      }
+    });
+
+    flux.push(baseFlux - transitDip);
+    inTransitMask.push(isTransit);
+    oddEvenMask.push(oddEven);
+  });
+
+  return { phase, flux, inTransitMask, oddEvenMask };
 };
 
 export default function ExoplanetDetector() {
@@ -67,7 +103,8 @@ export default function ExoplanetDetector() {
         exoplanetDetected: Math.random() > 0.5,
         confidence: (Math.random() * 30 + 70).toFixed(2),
         transitDepth: (Math.random() * 0.01).toFixed(4),
-        orbitalPeriod: (Math.random() * 20 + 5).toFixed(2)
+        orbitalPeriod: (Math.random() * 20 + 5).toFixed(2),
+        sonification: buildMockSonification(),
       });
     } catch {
       setError('Failed to analyze data. Please try again.');
@@ -224,6 +261,8 @@ export default function ExoplanetDetector() {
                 <p className="text-xl font-semibold text-white">{file?.name}</p>
               </div>
             </div>
+
+            <SonificationPanel data={results.sonification} />
           </div>
         )}
 
