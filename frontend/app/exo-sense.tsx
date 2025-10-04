@@ -57,7 +57,7 @@ export default function ExoplanetDetector() {
         transitDepth: (Math.random() * 0.01).toFixed(4),
         orbitalPeriod: (Math.random() * 20 + 5).toFixed(2)
       });
-    } catch (err) {
+    } catch {
       setError('Failed to analyze data. Please try again.');
     } finally {
       setLoading(false);

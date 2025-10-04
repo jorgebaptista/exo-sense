@@ -1,7 +1,6 @@
 """Tests for utility functions."""
 
 import numpy as np
-import pytest
 
 from utils import compute_rms
 
