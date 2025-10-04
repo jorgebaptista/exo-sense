@@ -30,6 +30,9 @@ cd api && mypy . && ruff check . && ruff format --check . && pytest tests/ -v
 
 # ML
 cd ml && mypy . --explicit-package-bases && ruff check . && pytest tests/ -v
+
+# Type stub check (if mypy fails with missing stubs)
+cd api && python -m pip install -r requirements-dev.txt
 ```
 
 ## API Endpoints
