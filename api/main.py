@@ -8,7 +8,7 @@ from routers import analyze, health
 app = FastAPI(
     title="ExoSense API",
     description="FastAPI backend for exoplanet detection and analysis",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # CORS Configuration

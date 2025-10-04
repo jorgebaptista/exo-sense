@@ -1,4 +1,5 @@
 """API response models."""
+
 from typing import Any
 
 from pydantic import BaseModel
@@ -6,12 +7,14 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     message: str
 
 
 class AnalysisResult(BaseModel):
     """Exoplanet analysis result."""
+
     exoplanet_detected: bool
     confidence: float
     transit_depth: float | None = None
@@ -22,6 +25,7 @@ class AnalysisResult(BaseModel):
 
 class AnalysisResponse(BaseModel):
     """Response model for analysis endpoint."""
+
     analysis_id: str
     filename: str
     result: AnalysisResult
@@ -32,6 +36,7 @@ class AnalysisResponse(BaseModel):
 
 class ReportResponse(BaseModel):
     """Response model for report generation."""
+
     report_url: str
     filename: str
     size_bytes: int

@@ -1,9 +1,11 @@
-"""Utility functions for mathematical operations."""
+"""Utility functions for ML operations."""
+
+from typing import Any
 
 import numpy as np
 
 
-def compute_rms(data: np.ndarray) -> float:
+def compute_rms(data: np.ndarray[Any, np.dtype[np.floating[Any]]]) -> float:
     """Compute root mean square of data array.
 
     Args:

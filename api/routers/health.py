@@ -1,4 +1,5 @@
 """Health check endpoints."""
+
 from fastapi import APIRouter
 
 from models.response import HealthResponse
@@ -19,5 +20,5 @@ async def detailed_health() -> dict[str, str]:
         "status": "ok",
         "api_version": "0.1.0",
         "ml_package": "available",
-        "storage": "ready"
+        "storage": "ready",
     }
