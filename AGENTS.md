@@ -56,16 +56,16 @@ This document provides essential guidelines for AI coding agents and contributor
 
 ```bash
 # Documentation
-markdownlint "**/*.md" --ignore node_modules --ignore .next
+markdownlint "**/*.md" --ignore "**/node_modules/**" --ignore "**/.next/**"
 
 # Frontend
-cd frontend && npm run type-check && npm run lint && npm run test
+cd frontend && npm install && npm run type-check && npm run lint && npm test && npm run build
 
 # Backend  
-cd api && mypy . && ruff check . --fix && ruff format . && pytest tests/
+cd api && pip install -r requirements.txt -r requirements-dev.txt && mypy . && ruff check . && ruff format --check . && bandit -r . || true && pytest tests/ -v --cov=. --cov-fail-under=50
 
 # ML
-cd ml && mypy . && ruff check . --fix && ruff format . && pytest tests/
+cd ml && pip install -r requirements.txt -r requirements-dev.txt && mypy . --explicit-package-bases && ruff check . && ruff format --check . && pytest tests/ -v
 ```
 
 **All must pass green** before committing.

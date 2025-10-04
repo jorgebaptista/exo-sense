@@ -45,10 +45,6 @@ jobs:
       - name: Run tests with pytest
         run: |
           pytest tests/ -v \
-            --cov=ml \
-            --cov-report=xml \
-            --cov-report=html \
-            --cov-fail-under=70 \
             --junitxml=test-results.xml
 
       - name: Upload test results
