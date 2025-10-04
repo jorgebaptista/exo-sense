@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Deployment verification script for ExoSense Railway API.
-Checks that the Railway backend deployment is working correctly.
+Google Cloud deployment verification script for ExoSense API.
+Checks that the Cloud Run deployment is working correctly.
 """
 
 import asyncio
@@ -11,10 +11,10 @@ import httpx
 
 
 async def check_api_health(api_url: str) -> bool:
-    """Check if the API is healthy using /health endpoint."""
+    """Check if the API is healthy using /healthz endpoint."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{api_url}/health", timeout=30.0)
+            response = await client.get(f"{api_url}/healthz", timeout=30.0)
             if response.status_code == 200:
                 data = response.json()
                 return data.get("status") == "ok"
@@ -39,17 +39,17 @@ async def check_api_root(api_url: str) -> bool:
 
 
 async def main():
-    """Main deployment verification for Railway API."""
-    # Replace with your actual Railway deployment URL
-    API_URL = "https://your-railway-app.up.railway.app"
+    """Main deployment verification for Google Cloud Run API."""
+    # Replace with your actual Cloud Run deployment URL
+    API_URL = "https://exosense-api-PROJECT_ID.a.run.app"
     
-    print("🚀 ExoSense Railway API Verification")
-    print("=" * 50)
+    print("🚀 ExoSense Google Cloud Run API Verification")
+    print("=" * 60)
     print(f"Target: {API_URL}")
-    print("=" * 50)
+    print("=" * 60)
     
     # Check API health endpoint
-    print("\n1. Checking /health endpoint...")
+    print("\n1. Checking /healthz endpoint...")
     health_ok = await check_api_health(API_URL)
     print(f"   Status: {'✅ OK' if health_ok else '❌ FAILED'}")
     
@@ -59,20 +59,20 @@ async def main():
     print(f"   Status: {'✅ OK' if root_ok else '❌ FAILED'}")
     
     # Summary
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 60)
     if health_ok and root_ok:
-        print("✅ Railway API deployment is healthy!")
+        print("✅ Google Cloud Run API deployment is healthy!")
         print("\nNext steps:")
         print("  - Test /analyze endpoint with sample data")
         print("  - Deploy frontend to Vercel")
         print("  - Update CORS origins in api/main.py")
         sys.exit(0)
     else:
-        print("❌ Railway API deployment has issues!")
+        print("❌ Google Cloud Run API deployment has issues!")
         print("\nTroubleshooting:")
-        print("  - Check Railway logs for errors")
-        print("  - Verify environment variables are set")
-        print("  - Ensure dependencies installed correctly")
+        print("  - Check Cloud Run logs: gcloud logging read")
+        print("  - Verify container is running: gcloud run services list")
+        print("  - Check environment variables and permissions")
         sys.exit(1)
 
 

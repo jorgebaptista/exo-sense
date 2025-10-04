@@ -1,0 +1,34 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: exosense-api
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/cpu-throttling: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        # Free tier limits
+        run.googleapis.com/cpu: "1000m"
+        run.googleapis.com/memory: "512Mi"
+        run.googleapis.com/max-scale: "10"
+        run.googleapis.com/min-scale: "0"
+        # Timeout for ML processing
+        run.googleapis.com/timeout: "300s"
+    spec:
+      containerConcurrency: 10
+      containers:
+      - image: gcr.io/PROJECT_ID/exosense-api:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
