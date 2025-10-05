@@ -1,0 +1,143 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual deployment
+
+env:
+  PROJECT_ID: exo-sense
+  REGION: europe-west1
+  SERVICE_NAME: exosense-api
+
+jobs:
+  # Wait for CI to pass before deploying
+  wait-for-ci:
+    name: '⏳ Wait for CI Pipeline'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Wait for CI completion
+      uses: lewagon/wait-on-check-action@v1.3.4
+      with:
+        ref: ${{ github.ref }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 30
+        running-workflow-name: 'Deploy to Production'
+        allowed-conclusions: success
+        check-regexp: 'CI Master Pipeline'
+
+  deploy-to-gcp:
+    name: '🚀 Deploy API to Google Cloud Run'
+    runs-on: ubuntu-latest
+    needs: wait-for-ci
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+        
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+      
+    - name: Enable required APIs
+      run: |
+        echo "🔧 Enabling required Google Cloud APIs..."
+        gcloud services enable cloudbuild.googleapis.com
+        gcloud services enable run.googleapis.com
+        gcloud services enable containerregistry.googleapis.com
+        
+    - name: Build and push container
+      working-directory: ./api
+      run: |
+        echo "🏗️ Building container image..."
+        IMAGE_NAME="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}"
+        echo "Image: $IMAGE_NAME"
+        
+        gcloud builds submit --tag $IMAGE_NAME .
+        
+    - name: Deploy to Cloud Run
+      run: |
+        echo "🚀 Deploying to Cloud Run..."
+        
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 512Mi \
+          --cpu 1 \
+          --max-instances 10 \
+          --min-instances 0 \
+          --timeout 300s \
+          --concurrency 10 \
+          --port 8080 \
+          --set-env-vars="NODE_ENV=production"
+          
+    - name: Get deployment info
+      id: deployment
+      run: |
+        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+          --region=${{ env.REGION }} \
+          --format='value(status.url)')
+        
+        echo "service_url=$SERVICE_URL" >> $GITHUB_OUTPUT
+        echo "🌐 Service URL: $SERVICE_URL"
+        
+    - name: Test deployment
+      run: |
+        echo "🧪 Testing deployment..."
+        
+        # Wait for service to be ready
+        sleep 10
+        
+        # Test health endpoints
+        curl -f "${{ steps.deployment.outputs.service_url }}/" || exit 1
+        curl -f "${{ steps.deployment.outputs.service_url }}/health/" || exit 1
+        
+        echo "✅ Deployment test successful!"
+        
+    - name: Update deployment summary
+      run: |
+        echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Service URL:** ${{ steps.deployment.outputs.service_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Region:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Service:** ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Quick Links" >> $GITHUB_STEP_SUMMARY
+        echo "- 🌐 [API Root](${{ steps.deployment.outputs.service_url }}/)" >> $GITHUB_STEP_SUMMARY
+        echo "- 📚 [API Docs](${{ steps.deployment.outputs.service_url }}/docs)" >> $GITHUB_STEP_SUMMARY
+        echo "- ❤️ [Health Check](${{ steps.deployment.outputs.service_url }}/health/)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Ready for production use!**" >> $GITHUB_STEP_SUMMARY
+
+  notify-deployment:
+    name: '📢 Notify Deployment'
+    runs-on: ubuntu-latest
+    needs: deploy-to-gcp
+    if: always()
+    
+    steps:
+    - name: Deployment notification
+      run: |
+        if [ "${{ needs.deploy-to-gcp.result }}" = "success" ]; then
+          echo "🎉 Deployment to production completed successfully!"
+          echo "The ExoSense API is now live and ready to serve requests."
+        else
+          echo "❌ Deployment failed. Please check the logs above."
+          exit 1
+        fi

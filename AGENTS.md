@@ -18,7 +18,7 @@
 
 ## Quality Checks (Required before finishing)
 
-**🚀 NEW: Use the pre-commit scripts to avoid CI failures!**
+**Use the pre-commit scripts to avoid CI failures!**
 
 ```bash
 # Quick fix common issues
