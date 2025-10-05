@@ -12,7 +12,7 @@
   "redirects": [
     {
       "source": "/api/(.*)",
-      "destination": "https://exosense-api-PROJECT_ID.a.run.app/$1",
+      "destination": "https://exosense-api-cafou2s4qq-ew.a.run.app/$1",
       "permanent": false
     }
   ],

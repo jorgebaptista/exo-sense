@@ -6,7 +6,7 @@
 const getApiUrl = (): string => {
   // In production, use the Google Cloud Run deployment URL
   if (process.env.NODE_ENV === 'production') {
-    return process.env.NEXT_PUBLIC_API_URL || 'https://exosense-api-PROJECT_ID.a.run.app';
+    return process.env.NEXT_PUBLIC_API_URL || 'https://exosense-api-cafou2s4qq-ew.a.run.app';
   }
   
   // In development, use local API
@@ -118,7 +118,7 @@ export async function generateReport(analysisId: string): Promise<{ success: boo
  */
 export async function checkApiHealth(): Promise<{ healthy: boolean; message?: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/healthz`, {
+    const response = await fetch(`${API_BASE_URL}/health/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

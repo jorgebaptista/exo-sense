@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 PROJECT_ID=${1:-"exosense-project"}
-REGION=${2:-"us-central1"}
+REGION=${2:-"europe-west1"}  # Default to Europe West 1 (Belgium - closest to Portugal)
 SERVICE_NAME="exosense-api"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
