@@ -226,23 +226,35 @@ def ingest_light_curves(
         if filename_column is not None:
             filename_value = entry.extra.get(filename_column)
             if not filename_value or not isinstance(filename_value, str):
-                logger.debug("Skipping %s: missing filename column %s", entry.target_id, filename_column)
+                logger.debug(
+                    "Skipping %s: missing filename column %s",
+                    entry.target_id,
+                    filename_column,
+                )
                 continue
             relative_path = Path(filename_value)
         elif filename_template is not None:
             try:
-                relative_path = Path(filename_template.format(target_id=entry.target_id))
+                relative_path = Path(
+                    filename_template.format(target_id=entry.target_id)
+                )
             except KeyError as exc:  # pragma: no cover - format errors are unexpected
-                logger.warning("Filename template missing key for %s: %s", entry.target_id, exc)
+                logger.warning(
+                    "Filename template missing key for %s: %s", entry.target_id, exc
+                )
                 continue
 
         if relative_path is None:
-            logger.debug("Skipping %s: no filename information available", entry.target_id)
+            logger.debug(
+                "Skipping %s: no filename information available", entry.target_id
+            )
             continue
 
         curve_path = (curve_dir / relative_path).resolve()
         if not curve_path.exists():
-            logger.debug("Skipping %s: curve file not found at %s", entry.target_id, curve_path)
+            logger.debug(
+                "Skipping %s: curve file not found at %s", entry.target_id, curve_path
+            )
             continue
 
         try:
@@ -252,11 +264,15 @@ def ingest_light_curves(
                 flux_columns=flux_columns,
             )
         except Exception as exc:  # pylint: disable=broad-except
-            logger.warning("Failed to load %s (%s): %s", entry.target_id, curve_path.name, exc)
+            logger.warning(
+                "Failed to load %s (%s): %s", entry.target_id, curve_path.name, exc
+            )
             continue
 
         if curve.sample_count < min_samples:
-            logger.debug("Skipping %s: only %d samples", entry.target_id, curve.sample_count)
+            logger.debug(
+                "Skipping %s: only %d samples", entry.target_id, curve.sample_count
+            )
             continue
 
         ingested.append(

@@ -1,0 +1,30 @@
+# Ignore Docker build artifacts
+Dockerfile
+.dockerignore
+.git/
+.gitignore
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.coverage
+.env
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Keep only what's needed for the app
+!requirements.txt
+!requirements-dev.txt
+!main.py
+!routers/
+!models/
+!services/
+!core/
+!tests/

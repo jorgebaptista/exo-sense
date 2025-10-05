@@ -8,8 +8,8 @@ from services import model_service
 
 
 def test_analyze_light_curve_returns_output() -> None:
-    time = np.linspace(0.0, 10.0, 1000)
-    flux = np.ones_like(time)
+    time = np.linspace(0.0, 10.0, 1000, dtype=np.float64)
+    flux = np.ones_like(time, dtype=np.float64)
     flux += np.random.default_rng(3).normal(0.0, 4e-4, size=time.size)
     mask = (time % 2.2) < 0.1
     flux[mask] -= 0.002

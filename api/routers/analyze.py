@@ -78,7 +78,11 @@ class ExoplanetPredictor:
                 "flux": [],
             }
 
-    def _detect_transits(self, time: np.ndarray, flux: np.ndarray) -> dict[str, Any]:
+    def _detect_transits(
+        self,
+        time: np.ndarray[Any, np.dtype[np.float64]],
+        flux: np.ndarray[Any, np.dtype[np.float64]],
+    ) -> dict[str, Any]:
         """Detect transits in normalized flux data."""
         try:
             # Calculate basic statistics

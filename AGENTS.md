@@ -3,7 +3,7 @@
 > **Context**: See [README.md](./README.md) for project overview and [docs/architecture.md](./docs/architecture.md) for detailed structure.
 > **Goal**: Web platform for exoplanet detection using NASA light curves  
 > **Stack**: Next.js + FastAPI + Python ML  
-> **Deployment**: Railway (API) + Vercel (Frontend)
+> **Deployment**: Google Cloud Run (API) + Vercel (Frontend)
 > **🚨 CRITICAL**: Every session MUST end with 100% clean checks (MyPy, Ruff, ESLint, tests) across ALL folders. No exceptions.
 > **Always run MyPy, Ruff, ESLint and all tests in `frontend`, `api`, and `ml` before ending your session.**
 
@@ -18,21 +18,38 @@
 
 ## Quality Checks (Required before finishing)
 
-```bash
-# Documentation
-markdownlint "**/*.md" --ignore "**/node_modules/**" --ignore "**/.next/**"
+**Use the pre-commit scripts to avoid CI failures!**
 
-# Frontend
+```bash
+# Quick fix common issues
+./scripts/fix-all.sh
+
+# Run all CI checks locally (RECOMMENDED)
+./scripts/pre-commit-checks.sh
+
+# Or manually run individual checks:
+```
+
+```bash
+# Frontend (CRITICAL: Run from frontend/ directory)
 cd frontend && npm run type-check && npm run lint && npm test
 
-# Backend  
+# Backend (CRITICAL: Run from api/ directory)
 cd api && mypy . && ruff check . && ruff format --check . && pytest tests/ -v
 
-# ML
+# ML Package (CRITICAL: Run from ml/ directory)
 cd ml && mypy . --explicit-package-bases && ruff check . && pytest tests/ -v
+
+# Documentation (Optional but recommended)
+markdownlint "**/*.md" --ignore "**/node_modules/**" --ignore "**/.next/**"
 
 # Type stub check (if mypy fails with missing stubs)
 cd api && python -m pip install -r requirements-dev.txt
+ 
+cd frontend && npx tsc --noEmit --listFiles | grep -E "(api|lib)" || echo "Check imports!"
+
+# Verify all components compile
+cd frontend && npm run build --dry-run 2>&1 | grep -E "(error|Error)" || echo "Build OK"
 ```
 
 ## API Endpoints
@@ -43,6 +60,6 @@ cd api && python -m pip install -r requirements-dev.txt
 
 ## Deployment
 
-- **Railway**: Automatic API deployment (`api/` folder)
+- **Google Cloud Run**: Docker container deployment (`api/` folder)
 - **Vercel**: Automatic frontend deployment (`frontend/` folder)
-- **Config**: `Procfile`, `railway.json`, `runtime.txt` in `api/`
+- **Config**: `Dockerfile`, `cloudrun.yaml`, `.dockerignore` in `api/`

@@ -23,3 +23,23 @@
 ## Project Status
 
 🚧 **Early development** — built for a 48-hour hackathon demo. Core MVP in progress
+
+## Deployment
+
+### Production
+
+- **Frontend**: Deployed automatically to Vercel on push to `main`
+- **API**: Deployed automatically to Google Cloud Run on push to `main`
+- **Live URL**: [Coming Soon - ExoSense.app](https://exosense.vercel.app)
+
+### Development
+
+```bash
+# Start API server
+cd api && uvicorn main:app --reload --port 8000
+
+# Start frontend (separate terminal)
+cd frontend && npm run dev
+```
+
+See [docs/automated-deployment.md](./docs/automated-deployment.md) for CI/CD setup details.

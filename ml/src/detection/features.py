@@ -176,9 +176,7 @@ def _autocorr(flux: NDArrayFloat, lag: int) -> float:
     return float(numerator / denominator)
 
 
-def _periodic_signature(
-    time: NDArrayFloat, flux: NDArrayFloat
-) -> tuple[float, float]:
+def _periodic_signature(time: NDArrayFloat, flux: NDArrayFloat) -> tuple[float, float]:
     if time.size < 10:
         return 0.0, 0.0
 

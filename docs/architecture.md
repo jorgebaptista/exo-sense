@@ -39,7 +39,7 @@ exo-sense/
 - **Frontend**: Next.js 14, TypeScript, Tailwind, Plotly
 - **Backend**: FastAPI, Pydantic v2, Uvicorn  
 - **ML**: NumPy, Astropy, Lightkurve, Matplotlib
-- **Deployment**: Railway (backend), Vercel (frontend)
+- **Deployment**: Google Cloud Run (backend), Vercel (frontend)
 - **Quality**: MyPy, Ruff, Pytest, Jest
 
 ## Data Flow
@@ -50,10 +50,10 @@ TIC/KIC Input → API → ML Pipeline → Plots + Metrics → Frontend → PDF E
 
 ## Deployment
 
-### Railway (Backend API)
+### Google Cloud Run (Backend API)
 
 - Automatic deployment from `main` branch
-- Environment: `api/` folder
+- Environment: `api/` folder with Docker container
 - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - Python 3.11+ with scientific dependencies
 

@@ -64,7 +64,9 @@ def build_training_dataset(
             logger.warning("No real light curves available; proceeding without them")
 
     if synthetic_samples > 0:
-        X_syn, y_syn = _generate_dataset(random_state=random_state, samples=synthetic_samples)
+        X_syn, y_syn = _generate_dataset(
+            random_state=random_state, samples=synthetic_samples
+        )
         feature_blocks.append(X_syn)
         label_blocks.append(y_syn)
         logger.info("Generated %d synthetic samples", y_syn.size)
@@ -76,7 +78,9 @@ def build_training_dataset(
     y = np.concatenate(label_blocks)
 
     distribution = Counter(int(label) for label in y)
-    logger.info("Training set class distribution (label -> count): %s", dict(distribution))
+    logger.info(
+        "Training set class distribution (label -> count): %s", dict(distribution)
+    )
 
     return X, y
 
@@ -119,7 +123,9 @@ def train_default_model(
     pipeline.fit(X_train, y_train)
 
     y_pred = pipeline.predict(X_test)
-    report = classification_report(y_test, y_pred, target_names=["non-planet", "planet"])
+    report = classification_report(
+        y_test, y_pred, target_names=["non-planet", "planet"]
+    )
     logger.info("Synthetic validation report:\n%s", report)
 
     joblib.dump(pipeline, artifact_path)
@@ -128,7 +134,9 @@ def train_default_model(
     return pipeline
 
 
-def _generate_dataset(*, random_state: int, samples: int) -> tuple[NDArray[np.float64], NDArray[np.int64]]:
+def _generate_dataset(
+    *, random_state: int, samples: int
+) -> tuple[NDArray[np.float64], NDArray[np.int64]]:
     generator = np.random.default_rng(random_state)
     config = SimulationConfig()
 
@@ -137,7 +145,9 @@ def _generate_dataset(*, random_state: int, samples: int) -> tuple[NDArray[np.fl
 
     for _ in range(samples):
         has_transit = bool(generator.integers(0, 2))
-        curve = simulate_light_curve(generator=generator, has_transit=has_transit, config=config)
+        curve = simulate_light_curve(
+            generator=generator, has_transit=has_transit, config=config
+        )
         features = extract_features(curve)
         feature_vectors.append(features.as_array())
         labels.append(int(has_transit))
@@ -147,9 +157,13 @@ def _generate_dataset(*, random_state: int, samples: int) -> tuple[NDArray[np.fl
     return X, y
 
 
-def _load_real_dataset(*, min_curve_samples: int) -> tuple[NDArray[np.float64], NDArray[np.int64]]:
+def _load_real_dataset(
+    *, min_curve_samples: int
+) -> tuple[NDArray[np.float64], NDArray[np.int64]]:
     if not _CURATED_CATALOG.exists() or not _CURVE_DIRECTORY.exists():
-        logger.warning("Curated catalog or light-curve directory missing; skipping real data")
+        logger.warning(
+            "Curated catalog or light-curve directory missing; skipping real data"
+        )
         return (
             np.empty((0, len(FEATURE_NAMES)), dtype=np.float64),
             np.empty(0, dtype=np.int64),

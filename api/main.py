@@ -12,9 +12,16 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# Add production Vercel URL after deployment
+allowed_origins = [
+    "http://localhost:3000",  # Local development
+    "https://exosense.vercel.app",  # Your desired Vercel domain
+    "https://exo-sense.vercel.app",  # Alternative domain
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],

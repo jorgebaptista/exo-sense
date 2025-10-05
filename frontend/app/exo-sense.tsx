@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { analyzeFile } from '@/lib/api';
 
 type Result = {
   exoplanetDetected: boolean;
   confidence: string;
   transitDepth: string;
   orbitalPeriod: string;
+  analysisId: string;
 };
 
 export default function ExoplanetDetector() {
@@ -59,18 +61,22 @@ export default function ExoplanetDetector() {
     setError(null);
 
     try {
-      // Simulate API call - replace with actual FastAPI endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await analyzeFile(file);
       
-      // Mock results - replace with actual API response
-      setResults({
-        exoplanetDetected: Math.random() > 0.5,
-        confidence: (Math.random() * 30 + 70).toFixed(2),
-        transitDepth: (Math.random() * 0.01).toFixed(4),
-        orbitalPeriod: (Math.random() * 20 + 5).toFixed(2)
-      });
-    } catch {
-      setError('Failed to analyze data. Please try again.');
+      if (response.success) {
+        setResults({
+          exoplanetDetected: response.data.exoplanet_detected,
+          confidence: response.data.confidence.toFixed(2),
+          transitDepth: response.data.transit_depth.toFixed(4),
+          orbitalPeriod: response.data.orbital_period.toFixed(2),
+          analysisId: response.data.analysis_id,
+        });
+      } else {
+        setError(response.message || 'Analysis failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      setError('Failed to analyze data. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
