@@ -18,8 +18,10 @@ from models.response import AnalysisResponse, AnalysisResult
 from services.model_service import (
     ModelOutput,
     PredictionResult,
-    analyze_light_curve as run_model_inference,
     get_model,
+)
+from services.model_service import (
+    analyze_light_curve as run_model_inference,
 )
 
 # Configure matplotlib for non-interactive backend
@@ -272,7 +274,9 @@ def _build_metrics(output: ModelOutput) -> dict[str, Any]:
     feature_values = prediction.features.as_array()
     feature_vector = {
         name: float(value)
-        for name, value in zip(model.metadata.feature_names, feature_values.tolist())
+        for name, value in zip(
+            model.metadata.feature_names, feature_values.tolist(), strict=False
+        )
     }
 
     metrics: dict[str, Any] = {

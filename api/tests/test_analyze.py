@@ -56,11 +56,10 @@ def test_analyze_endpoint_returns_prediction() -> None:
     assert result["reasons"]
 
     metrics = payload["metrics"]
-    assert "snr" in metrics
     assert "data_points" in metrics
     assert metrics["data_points"] == 1200
-    assert "depth" in metrics
-    assert "period" in metrics
+    assert "model_version" in metrics
+    assert "feature_vector" in metrics
 
     plots = payload["plots"]
     assert "light_curve" in plots

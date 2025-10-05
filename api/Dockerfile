@@ -16,7 +16,13 @@ COPY requirements.txt requirements-dev.txt ./
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy and install the ML package
+COPY ../ml /tmp/ml
+WORKDIR /tmp/ml
+RUN pip install --no-cache-dir -e .
+
+# Return to app directory and copy application code
+WORKDIR /app
 COPY . .
 
 # Create storage directories

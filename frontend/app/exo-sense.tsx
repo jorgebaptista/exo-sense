@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Upload, Search, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { analyzeFile } from '@/lib/api';
 
 type Result = {
   exoplanetDetected: boolean;
@@ -72,6 +71,7 @@ export default function ExoplanetDetector() {
         confidence: confidenceValue.toFixed(2),
         transitDepth: transitDepthValue,
         orbitalPeriod: orbitalPeriodValue,
+        analysisId: `demo-${Date.now()}`,
       });
     } catch (analysisError) {
       console.error(analysisError);
