@@ -15,6 +15,14 @@ import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from models.response import AnalysisResponse, AnalysisResult
+from services.model_service import (
+    ModelOutput,
+    PredictionResult,
+    get_model,
+)
+from services.model_service import (
+    analyze_light_curve as run_model_inference,
+)
 
 # Configure matplotlib for non-interactive backend
 matplotlib.use("Agg")
@@ -31,129 +39,7 @@ REPORTS_DIR = Path("storage/reports")
 # Ensure directories exist
 for directory in [UPLOAD_DIR, PLOTS_DIR, REPORTS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
-
-
-class ExoplanetPredictor:
-    """Simplified exoplanet detection using transit analysis."""
-
-    def __init__(self) -> None:
-        """Initialize the exoplanet predictor."""
-        self.model_loaded = True
-        logger.info("ExoplanetPredictor initialized")
-
-    def predict(self, light_curve_data: dict[str, Any]) -> dict[str, Any]:
-        """Predict exoplanet presence from light curve data."""
-        try:
-            # Extract time and flux arrays
-            time_array = np.array(light_curve_data.get("time", []))
-            flux_array = np.array(light_curve_data.get("flux", []))
-
-            if len(time_array) == 0 or len(flux_array) == 0:
-                raise ValueError("Empty time or flux arrays")
-
-            # Normalize flux
-            flux_normalized = (flux_array - np.median(flux_array)) / np.median(
-                flux_array
-            )
-
-            # Simple transit detection using moving window
-            prediction = self._detect_transits(time_array, flux_normalized)
-
-            # Add data for plotting
-            prediction["time"] = time_array.tolist()
-            prediction["flux"] = flux_normalized.tolist()
-
-            return prediction
-
-        except Exception as e:
-            logger.error(f"Prediction error: {e}")
-            return {
-                "exoplanet_detected": False,
-                "confidence": 0.0,
-                "transit_depth": 0.0,
-                "orbital_period": 0.0,
-                "label": "error",
-                "reasons": [f"Analysis failed: {str(e)}"],
-                "time": [],
-                "flux": [],
-            }
-
-    def _detect_transits(
-        self,
-        time: np.ndarray[Any, np.dtype[np.float64]],
-        flux: np.ndarray[Any, np.dtype[np.float64]],
-    ) -> dict[str, Any]:
-        """Detect transits in normalized flux data."""
-        try:
-            # Calculate basic statistics
-            flux_std = np.std(flux)
-
-            # Look for significant dips (potential transits)
-            dip_threshold = -3 * flux_std  # 3-sigma below mean
-            transit_candidates = flux < dip_threshold
-
-            if np.any(transit_candidates):
-                # Count number of potential transit points
-                transit_points = np.sum(transit_candidates)
-                total_points = len(flux)
-
-                # Estimate transit depth (maximum dip)
-                transit_depth = abs(np.min(flux))
-
-                # Simple period estimation (time between first and last transit)
-                transit_indices = np.where(transit_candidates)[0]
-                if len(transit_indices) > 1:
-                    time_span = time[transit_indices[-1]] - time[transit_indices[0]]
-                    estimated_period = time_span / max(1, len(transit_indices) - 1)
-                else:
-                    estimated_period = 0.0
-
-                # Calculate confidence based on transit depth and regularity
-                confidence = min(95.0, (transit_depth / flux_std) * 20)
-
-                exoplanet_detected = confidence > 50.0
-
-                reasons = []
-                if exoplanet_detected:
-                    reasons.append(f"Transit depth detected: {transit_depth:.4f}")
-                    reasons.append(f"Transit points: {transit_points}/{total_points}")
-                    if estimated_period > 0:
-                        reasons.append(f"Estimated period: {estimated_period:.2f} days")
-                else:
-                    reasons.append("No significant transits detected")
-
-                return {
-                    "exoplanet_detected": exoplanet_detected,
-                    "confidence": round(float(confidence), 1),
-                    "transit_depth": round(float(transit_depth), 6),
-                    "orbital_period": round(float(estimated_period), 2),
-                    "label": "planet" if exoplanet_detected else "non-planet",
-                    "reasons": reasons,
-                }
-            else:
-                return {
-                    "exoplanet_detected": False,
-                    "confidence": 0.0,
-                    "transit_depth": 0.0,
-                    "orbital_period": 0.0,
-                    "label": "non-planet",
-                    "reasons": ["No transit signatures detected"],
-                }
-
-        except Exception as e:
-            logger.error(f"Transit detection error: {e}")
-            return {
-                "exoplanet_detected": False,
-                "confidence": 0.0,
-                "transit_depth": 0.0,
-                "orbital_period": 0.0,
-                "label": "error",
-                "reasons": [f"Transit detection failed: {str(e)}"],
-            }
-
-
-# Initialize predictor
-predictor = ExoplanetPredictor()
+# The ML model is loaded lazily via the model service when used in endpoints.
 
 
 def parse_light_curve_file(file_content: bytes, filename: str) -> dict[str, Any]:
@@ -208,17 +94,19 @@ def parse_light_curve_file(file_content: bytes, filename: str) -> dict[str, Any]
         ) from e
 
 
-def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[str, str]:
+def generate_plots(output: ModelOutput) -> dict[str, str]:
     """Generate analysis plots and return as base64 encoded strings."""
     plots: dict[str, str] = {}
 
     try:
-        time_data = np.array(prediction_data.get("time", []))
-        flux_data = np.array(prediction_data.get("flux", []))
+        time_data = output.time
+        flux_data = output.normalized_flux
 
-        if len(time_data) == 0 or len(flux_data) == 0:
+        if time_data.size == 0 or flux_data.size == 0:
             logger.warning("No data available for plotting")
             return plots
+
+        prediction = output.prediction
 
         # 1. Light curve plot
         plt.figure(figsize=(12, 6))
@@ -228,8 +116,7 @@ def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[st
         plt.title("Light Curve")
         plt.grid(True, alpha=0.3)
 
-        # Highlight transits if detected
-        if prediction_data.get("exoplanet_detected", False):
+        if prediction.exoplanet_detected:
             flux_std = np.std(flux_data)
             transit_mask = flux_data < -3 * flux_std
             if np.any(transit_mask):
@@ -242,7 +129,6 @@ def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[st
                 )
                 plt.legend()
 
-        # Save to base64
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
         plt.close()
@@ -250,7 +136,7 @@ def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[st
         plots["light_curve"] = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
         # 2. Phase-folded plot (if period detected)
-        period = prediction_data.get("orbital_period", 0)
+        period = prediction.features.dominant_period
         if period > 0:
             plt.figure(figsize=(10, 6))
             phases = ((time_data - time_data[0]) / period) % 1
@@ -283,19 +169,19 @@ def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[st
         # Subplot 2: Time series with rolling mean
         plt.subplot(2, 2, 2)
         plt.plot(time_data, flux_data, "b.", markersize=1, alpha=0.5, label="Data")
-        # Simple rolling mean for trend
-        if len(flux_data) > 10:
-            window = min(len(flux_data) // 10, 100)
-            rolling_mean = (
-                pd.Series(flux_data).rolling(window=window, center=True).mean()
-            )
-            plt.plot(
-                time_data,
-                rolling_mean,
-                "r-",
-                linewidth=2,
-                label=f"Rolling Mean ({window})",
-            )
+        if flux_data.size > 10:
+            window = min(int(flux_data.size / 10), 100)
+            if window > 1:
+                rolling_mean = (
+                    pd.Series(flux_data).rolling(window=window, center=True).mean()
+                )
+                plt.plot(
+                    time_data,
+                    rolling_mean,
+                    "r-",
+                    linewidth=2,
+                    label=f"Rolling Mean ({window})",
+                )
         plt.xlabel("Time (days)")
         plt.ylabel("Normalized Flux")
         plt.title("Trend Analysis")
@@ -304,16 +190,16 @@ def generate_plots(prediction_data: dict[str, Any], analysis_id: str) -> dict[st
 
         # Subplot 3: Power spectrum (simple)
         plt.subplot(2, 2, 3)
-        if len(flux_data) > 10:
-            freq = np.fft.fftfreq(len(flux_data), d=np.median(np.diff(time_data)))
+        if flux_data.size > 10:
+            freq = np.fft.fftfreq(flux_data.size, d=np.median(np.diff(time_data)))
             power = np.abs(np.fft.fft(flux_data - np.mean(flux_data))) ** 2
-            # Only plot positive frequencies
             pos_mask = freq > 0
-            plt.loglog(freq[pos_mask], power[pos_mask])
-            plt.xlabel("Frequency (1/days)")
-            plt.ylabel("Power")
-            plt.title("Power Spectrum")
-            plt.grid(True, alpha=0.3)
+            if np.any(pos_mask):
+                plt.loglog(freq[pos_mask], power[pos_mask])
+                plt.xlabel("Frequency (1/days)")
+                plt.ylabel("Power")
+                plt.title("Power Spectrum")
+                plt.grid(True, alpha=0.3)
 
         # Subplot 4: Statistics summary
         plt.subplot(2, 2, 4)
@@ -322,12 +208,12 @@ Mean: {np.mean(flux_data):.6f}
 Std: {np.std(flux_data):.6f}
 Min: {np.min(flux_data):.6f}
 Max: {np.max(flux_data):.6f}
-Points: {len(flux_data)}
+Points: {flux_data.size}
 
 Detection:
-Confidence: {prediction_data.get("confidence", 0):.1f}%
-Depth: {prediction_data.get("transit_depth", 0):.6f}
-Period: {prediction_data.get("orbital_period", 0):.2f} d"""
+Probability: {prediction.probability:.2%}
+Depth: {prediction.features.depth:.6f}
+Period: {prediction.features.dominant_period:.2f} d"""
 
         plt.text(
             0.1,
@@ -351,11 +237,61 @@ Period: {prediction_data.get("orbital_period", 0):.2f} d"""
     except Exception as e:
         logger.error(f"Plot generation error: {e}")
 
-    # Convert to data URLs
-    for plot_name, plot_data in plots.items():
-        plots[plot_name] = f"data:image/png;base64,{plot_data}"
+    for name, data in plots.items():
+        plots[name] = f"data:image/png;base64,{data}"
 
     return plots
+
+
+def _build_reasons(prediction: PredictionResult) -> list[str]:
+    reasons: list[str] = []
+    probability_pct = prediction.probability * 100
+    reasons.append(f"Model confidence {probability_pct:.1f}%")
+
+    if prediction.features.depth > 0:
+        reasons.append(
+            f"Transit depth {prediction.features.depth:.5f} (normalized flux units)"
+        )
+
+    if prediction.features.transit_ratio > 0:
+        transit_pct = prediction.features.transit_ratio * 100
+        reasons.append(f"Transit coverage {transit_pct:.2f}% of all cadences")
+
+    if prediction.features.dominant_period > 0:
+        reasons.append(
+            f"Dominant period detected at {prediction.features.dominant_period:.2f} days"
+        )
+
+    if not prediction.exoplanet_detected:
+        reasons.append("Signal below decision threshold")
+
+    return reasons
+
+
+def _build_metrics(output: ModelOutput) -> dict[str, Any]:
+    prediction = output.prediction
+    model = get_model()
+    feature_values = prediction.features.as_array()
+    feature_vector = {
+        name: float(value)
+        for name, value in zip(
+            model.metadata.feature_names, feature_values.tolist(), strict=False
+        )
+    }
+
+    metrics: dict[str, Any] = {
+        "model_version": model.metadata.version,
+        "probability": prediction.probability,
+        "data_points": int(output.time.size),
+        "feature_vector": feature_vector,
+        "signal_depth": prediction.features.depth,
+        "signal_snr": prediction.features.depth_snr,
+        "transit_ratio": prediction.features.transit_ratio,
+        "estimated_period_days": prediction.features.dominant_period,
+        "trend_slope": prediction.features.trend_slope,
+    }
+
+    return metrics
 
 
 @router.post("/", response_model=AnalysisResponse)
@@ -384,30 +320,28 @@ async def analyze_light_curve(file: Annotated[UploadFile, File()]) -> AnalysisRe
         # Parse light curve data
         light_curve_data = parse_light_curve_file(file_content, file.filename)
 
-        # Run prediction
-        prediction = predictor.predict(light_curve_data)
+        time_array = np.asarray(light_curve_data["time"], dtype=np.float64)
+        flux_array = np.asarray(light_curve_data["flux"], dtype=np.float64)
 
-        # Create analysis result
+        model_output = run_model_inference(time_array, flux_array)
+        prediction = model_output.prediction
+
+        confidence = round(prediction.probability * 100, 2)
+        reasons = _build_reasons(prediction)
+        orbital_period_raw = prediction.features.dominant_period
+        orbital_period = float(orbital_period_raw) if orbital_period_raw > 0 else None
+
         result = AnalysisResult(
-            exoplanet_detected=prediction["exoplanet_detected"],
-            confidence=prediction["confidence"],
-            transit_depth=prediction["transit_depth"],
-            orbital_period=prediction["orbital_period"],
-            label=prediction["label"],
-            reasons=prediction["reasons"],
+            exoplanet_detected=prediction.exoplanet_detected,
+            confidence=confidence,
+            transit_depth=prediction.features.depth,
+            orbital_period=orbital_period,
+            label=prediction.label,
+            reasons=reasons,
         )
 
-        # Generate plots
-        plots = generate_plots(prediction, analysis_id)
-
-        # Calculate metrics
-        metrics = {
-            "snr": prediction.get("confidence", 0) / 10,  # Simple SNR approximation
-            "duration": 0.0,  # Would need more sophisticated analysis
-            "depth": prediction["transit_depth"],
-            "period": prediction["orbital_period"],
-            "data_points": len(prediction.get("time", [])),
-        }
+        plots = generate_plots(model_output)
+        metrics = _build_metrics(model_output)
 
         processing_time = time.time() - start_time
 

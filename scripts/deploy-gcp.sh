@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-PROJECT_ID=${1:-"exosense-project"}
+PROJECT_ID=${1:-"exo-sense"}
 REGION=${2:-"europe-west1"}  # Default to Europe West 1 (Belgium - closest to Portugal)
 SERVICE_NAME="exosense-api"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
@@ -32,7 +32,7 @@ gcloud services enable containerregistry.googleapis.com
 
 # Build and push container
 echo "🏗️ Building container..."
-gcloud builds submit --tag $IMAGE_NAME .
+gcloud builds submit --tag $IMAGE_NAME ./api
 
 # Deploy to Cloud Run with free tier settings
 echo "🚀 Deploying to Cloud Run..."

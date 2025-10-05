@@ -2,3 +2,5 @@ mypy>=1.7.0
 ruff>=0.1.6
 pytest>=7.4.0
 pytest-cov>=4.1.0
+pandas-stubs>=2.0.0.240514
+scipy-stubs>=1.10.0.2

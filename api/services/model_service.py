@@ -2,23 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 import numpy as np
-
-ML_SRC_PATH = Path(__file__).resolve().parents[2] / "ml" / "src"
-if str(ML_SRC_PATH) not in sys.path:
-    sys.path.insert(0, str(ML_SRC_PATH))
-
-# ruff: noqa: E402 - Need to add ML path before importing
-from detection.model import (  # type: ignore[import-not-found]
-    ExoplanetModel,
-    PredictionResult,
-)
-from detection.types import LightCurve  # type: ignore[import-not-found]
+from detection.model import ExoplanetModel, PredictionResult
+from detection.types import LightCurve
 
 
 @dataclass(frozen=True)

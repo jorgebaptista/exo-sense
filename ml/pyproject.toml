@@ -10,6 +10,9 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "scipy",
+    "pandas",
+    "scikit-learn",
+    "joblib",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +20,8 @@ dev = [
     "pytest",
     "mypy",
     "ruff",
+    "pandas-stubs",
+    "scipy-stubs",
 ]
 
 [tool.setuptools.packages.find]
