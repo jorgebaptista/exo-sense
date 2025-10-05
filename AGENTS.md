@@ -18,6 +18,18 @@
 
 ## Quality Checks (Required before finishing)
 
+**🚀 NEW: Use the pre-commit scripts to avoid CI failures!**
+
+```bash
+# Quick fix common issues
+./scripts/fix-all.sh
+
+# Run all CI checks locally (RECOMMENDED)
+./scripts/pre-commit-checks.sh
+
+# Or manually run individual checks:
+```
+
 ```bash
 # Frontend (CRITICAL: Run from frontend/ directory)
 cd frontend && npm run type-check && npm run lint && npm test
