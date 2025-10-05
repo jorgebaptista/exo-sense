@@ -85,7 +85,7 @@ def test_ingest_light_curves_with_template(tmp_path: Path) -> None:
             disposition="PC",
             survey="tess",
             source_path=tmp_path / "catalog.csv",
-            extra={}
+            extra={},
         ),
         CatalogRow(
             target_id="TOI-999",
@@ -93,7 +93,7 @@ def test_ingest_light_curves_with_template(tmp_path: Path) -> None:
             disposition="FP",
             survey="tess",
             source_path=tmp_path / "catalog.csv",
-            extra={}
+            extra={},
         ),
     ]
 
@@ -102,8 +102,12 @@ def test_ingest_light_curves_with_template(tmp_path: Path) -> None:
 
     rng = np.random.default_rng(42)
     frames = [
-        pd.DataFrame({"time": np.linspace(0, 1, 250), "flux": rng.normal(0.0, 0.0005, 250)}),
-        pd.DataFrame({"time": np.linspace(0, 1, 50), "flux": rng.normal(0.0, 0.0005, 50)}),
+        pd.DataFrame(
+            {"time": np.linspace(0, 1, 250), "flux": rng.normal(0.0, 0.0005, 250)}
+        ),
+        pd.DataFrame(
+            {"time": np.linspace(0, 1, 50), "flux": rng.normal(0.0, 0.0005, 50)}
+        ),
     ]
     frames[0].to_csv(curves_dir / "TOI-123.csv", index=False)
     frames[1].to_csv(curves_dir / "TOI-999.csv", index=False)

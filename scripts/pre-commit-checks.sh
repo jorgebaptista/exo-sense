@@ -55,10 +55,10 @@ run_check "API Tests" "pytest tests/ -v" "$PROJECT_ROOT/api"
 
 # 🤖 ML Package Checks
 echo -e "\n${YELLOW}=== 🤖 ML PACKAGE CHECKS ===${NC}"
-run_check "ML MyPy Type Check" "mypy . --explicit-package-bases" "$PROJECT_ROOT/ml"
+run_check "ML MyPy Type Check" "PYTHONPATH=src mypy . --explicit-package-bases" "$PROJECT_ROOT/ml"
 run_check "ML Ruff Lint" "ruff check ." "$PROJECT_ROOT/ml"
 run_check "ML Ruff Format Check" "ruff format --check ." "$PROJECT_ROOT/ml"
-run_check "ML Tests" "pytest tests/ -v" "$PROJECT_ROOT/ml"
+run_check "ML Tests" "PYTHONPATH=src pytest tests/ -v" "$PROJECT_ROOT/ml"
 
 # 🐳 Docker Build Test (Optional - only if Docker is available)
 echo -e "\n${YELLOW}=== 🐳 DOCKER BUILD TEST ===${NC}"

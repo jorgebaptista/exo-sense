@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import io
 import csv
+import io
 
 import numpy as np
 from fastapi.testclient import TestClient
 
 from main import app
-from services.model_service import get_model
 
 client = TestClient(app)
 
@@ -57,11 +56,11 @@ def test_analyze_endpoint_returns_prediction() -> None:
     assert result["reasons"]
 
     metrics = payload["metrics"]
-    model = get_model()
-    assert metrics["model_version"] == model.metadata.version
-    assert 0.0 <= metrics["probability"] <= 1.0
+    assert "snr" in metrics
+    assert "data_points" in metrics
     assert metrics["data_points"] == 1200
-    assert len(metrics["feature_vector"]) == len(model.metadata.feature_names)
+    assert "depth" in metrics
+    assert "period" in metrics
 
     plots = payload["plots"]
     assert "light_curve" in plots

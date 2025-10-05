@@ -1,4 +1,10 @@
-"""Tests for feature extraction module."""
+"""Tests for featdef _generate_simple_curve() -> LightCurve:
+time = np.linspace(0.0, 10.0, 400, dtype=np.float64)
+flux = np.ones_like(time, dtype=np.float64)
+flux += np.random.default_rng(1).normal(0.0, 5e-4, size=time.size)
+mask = (time % 2.5) < 0.1
+flux[mask] -= 0.002
+return LightCurve.from_sequences(time, flux)raction module."""
 
 from __future__ import annotations
 
@@ -16,8 +22,8 @@ from detection.types import LightCurve  # noqa: E402
 
 
 def _generate_simple_curve() -> LightCurve:
-    time = np.linspace(0.0, 10.0, 1000)
-    flux = np.ones_like(time)
+    time = np.linspace(0.0, 10.0, 1000, dtype=np.float64)
+    flux = np.ones_like(time, dtype=np.float64)
     flux += np.random.default_rng(1).normal(0.0, 5e-4, size=time.size)
     mask = (time % 2.5) < 0.1
     flux[mask] -= 0.002

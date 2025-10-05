@@ -32,8 +32,12 @@ def test_model_distinguishes_signals() -> None:
     generator = np.random.default_rng(8)
     config = SimulationConfig(duration_days=22.0)
 
-    planet_curve = simulate_light_curve(generator=generator, has_transit=True, config=config)
-    noise_curve = simulate_light_curve(generator=generator, has_transit=False, config=config)
+    planet_curve = simulate_light_curve(
+        generator=generator, has_transit=True, config=config
+    )
+    noise_curve = simulate_light_curve(
+        generator=generator, has_transit=False, config=config
+    )
 
     model = ExoplanetModel(auto_train=True, random_state=3)
     planet_prob = model.predict(planet_curve).probability

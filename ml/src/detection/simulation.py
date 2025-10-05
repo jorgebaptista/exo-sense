@@ -53,7 +53,9 @@ def simulate_light_curve(
             flare_center = generator.uniform(2.0, config.duration_days - 2.0)
             flare_width = generator.uniform(0.05, 0.2)
             flare_height = generator.uniform(5e-4, 2e-3)
-            flux += flare_height * np.exp(-0.5 * ((time - flare_center) / flare_width) ** 2)
+            flux += flare_height * np.exp(
+                -0.5 * ((time - flare_center) / flare_width) ** 2
+            )
 
     return LightCurve.from_sequences(time, flux)
 
